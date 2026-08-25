@@ -11,6 +11,7 @@ import argparse
 import sys
 
 from mentoria.agent import run_agent
+from mentoria.observability import AuditLog
 from mentoria.schemas import AgentRequest, CEFRLevel
 
 
@@ -24,6 +25,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Nivel CEFR (padrao: B1)",
     )
     parser.add_argument("--student-id", default=None, help="Identificador opcional do aluno")
+    parser.add_argument(
+        "--no-observability",
+        action="store_true",
+        help="Desativa logs estruturados e trilha de auditoria",
+    )
     args = parser.parse_args(argv)
 
     request = AgentRequest(
@@ -31,7 +37,8 @@ def main(argv: list[str] | None = None) -> int:
         level=CEFRLevel(args.level),
         student_id=args.student_id,
     )
-    report = run_agent(request)
+    audit = None if args.no_observability else AuditLog(path="logs/audit.jsonl")
+    report = run_agent(request, audit=audit)
     sys.stdout.write(report.model_dump_json(indent=2))
     sys.stdout.write("\n")
     return 0
