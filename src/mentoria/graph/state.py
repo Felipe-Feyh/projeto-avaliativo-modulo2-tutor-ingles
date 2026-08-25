@@ -33,6 +33,8 @@ class AgentState(TypedDict, total=False):
     intent: RequestType
     blocked: bool
     block_reason: str | None
+    injection_detected: bool
+    injection_flags: list[str]
 
     # Memoria (recuperada do perfil do aluno)
     known_terms: list[str]

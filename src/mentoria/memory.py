@@ -106,6 +106,14 @@ class StudentMemory:
             "sessions": session_count,
         }
 
+    def reset_profile(self, student_id: str) -> int:
+        """Acao DESTRUTIVA: apaga o historico do aluno. Retorna nº de linhas."""
+        with self._lock, self._conn:
+            cur = self._conn.execute("DELETE FROM sessions WHERE student_id = ?", (student_id,))
+            removed = cur.rowcount
+            self._conn.execute("DELETE FROM seen_terms WHERE student_id = ?", (student_id,))
+        return removed
+
     def close(self) -> None:
         self._conn.close()
 
