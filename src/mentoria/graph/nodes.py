@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from mentoria import prompts
+from mentoria import prompts, security
 from mentoria.graph.state import AgentState
 from mentoria.llm import parse_json_block
 from mentoria.schemas import ComprehensionQuestion, Flashcard, MentorReport, RequestType
@@ -58,6 +58,23 @@ def validate_input(state: AgentState) -> dict:
             "errors": ["input:muito_longo"],
         }
     return {"blocked": False}
+
+
+def screen_input(state: AgentState) -> dict:
+    """Screening adversarial (deterministico) da entrada do aluno.
+
+    Detecta prompt injection / entrada nao confiavel e sinaliza. NAO segue
+    instrucoes contidas no conteudo: a mensagem segue sendo tratada apenas
+    como tema/texto pelos nodes seguintes. Registra o evento para auditoria.
+    """
+    flags = security.detect_injection(state.get("message", ""))
+    if not flags:
+        return {"injection_detected": False, "injection_flags": []}
+    return {
+        "injection_detected": True,
+        "injection_flags": flags,
+        "errors": [f"security:prompt_injection:{'|'.join(flags)}"],
+    }
 
 
 def load_memory(state: AgentState, memory: StudentMemory | None = None) -> dict:
@@ -147,6 +164,13 @@ def build_report(state: AgentState) -> dict:
     intent = state.get("intent", RequestType.UNKNOWN)
     level = state.get("level")
     notes = list(state.get("errors", []))
+
+    if state.get("injection_detected"):
+        notes.append(
+            "Entrada adversarial neutralizada: o conteudo foi tratado apenas como "
+            "dado (tema/texto). Instrucoes embutidas foram ignoradas e nenhuma "
+            "informacao sensivel e revelada."
+        )
 
     if state.get("blocked"):
         report = MentorReport(

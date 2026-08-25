@@ -4,7 +4,7 @@ Topologia (DAG, sem loops -> terminacao garantida):
 
     START -> validate_input
       validate_input --(bloqueado?)--> build_report
-      validate_input --(ok)--> load_memory -> classify_intent
+      validate_input --(ok)--> screen_input -> load_memory -> classify_intent
         classify_intent --(flashcards)--> generate_vocabulary
         classify_intent --(reading)----> generate_questions
         classify_intent --(unknown)----> build_report
@@ -61,6 +61,7 @@ def build_graph(
 
     # Nodes deterministicos
     graph.add_node("validate_input", nodes.validate_input)
+    graph.add_node("screen_input", nodes.screen_input)
     if memory is not None:
         graph.add_node("load_memory", partial(nodes.load_memory, memory=memory))
         graph.add_node("persist_memory", partial(nodes.persist_memory, memory=memory))
@@ -87,8 +88,9 @@ def build_graph(
     graph.add_conditional_edges(
         "validate_input",
         _route_after_validate,
-        {"blocked": "build_report", "ok": "load_memory"},
+        {"blocked": "build_report", "ok": "screen_input"},
     )
+    graph.add_edge("screen_input", "load_memory")
     graph.add_edge("load_memory", "classify_intent")
     graph.add_conditional_edges(
         "classify_intent",
