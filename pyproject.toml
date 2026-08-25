@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "structlog>=24.1",
     "langgraph>=1.0",
+    "langgraph-checkpoint-sqlite>=2.0",
     "langchain-core>=1.0",
     "langchain-groq>=1.0",
     "langchain-google-genai>=4.0",

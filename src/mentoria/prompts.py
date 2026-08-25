@@ -57,8 +57,12 @@ def classifier_user(message: str) -> str:
     return f"Mensagem do aluno (nivel-alvo pode ser inferido depois):\n<<<\n{message}\n>>>"
 
 
-def vocab_user(theme: str, level: str) -> str:
-    return f"Tema: {theme}\nNivel CEFR: {level}"
+def vocab_user(theme: str, level: str, known_terms: list[str] | None = None) -> str:
+    base = f"Tema: {theme}\nNivel CEFR: {level}"
+    if known_terms:
+        avoid = ", ".join(known_terms[:30])
+        base += f"\nEvite repetir estes termos que o aluno ja viu: {avoid}"
+    return base
 
 
 def examples_user(terms: list[str], level: str) -> str:

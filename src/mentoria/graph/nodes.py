@@ -23,9 +23,19 @@ from mentoria.tools.dictionary import DictionaryResult, lookup_word
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
 
+    from mentoria.memory import StudentMemory
+
 MAX_MESSAGE_LEN = 5000
 
 DictionaryLookup = Callable[[str], "DictionaryResult | None"]
+
+
+def _memory(memory: StudentMemory | None) -> StudentMemory:
+    if memory is not None:
+        return memory
+    from mentoria.memory import get_default_memory
+
+    return get_default_memory()
 
 
 def _level(state: AgentState) -> str:
@@ -48,6 +58,40 @@ def validate_input(state: AgentState) -> dict:
             "errors": ["input:muito_longo"],
         }
     return {"blocked": False}
+
+
+def load_memory(state: AgentState, memory: StudentMemory | None = None) -> dict:
+    """Recupera o perfil do aluno (temas recentes e termos ja vistos).
+
+    Anonimo (sem student_id) nao acessa a memoria -> nenhum efeito colateral.
+    """
+    student_id = state.get("student_id")
+    if not student_id:
+        return {"known_terms": [], "recent_themes": []}
+    profile = _memory(memory).get_profile(student_id)
+    return {
+        "known_terms": profile["known_terms"],
+        "recent_themes": profile["recent_themes"],
+    }
+
+
+def persist_memory(state: AgentState, memory: StudentMemory | None = None) -> dict:
+    """Registra a sessao e os termos vistos no perfil do aluno."""
+    student_id = state.get("student_id")
+    if not student_id:
+        return {}
+    mem = _memory(memory)
+    intent = state.get("intent", RequestType.UNKNOWN)
+    mem.record_session(
+        student_id=student_id,
+        request_type=str(intent),
+        theme=state.get("theme"),
+        run_id=state.get("run_id"),
+    )
+    terms = [item["term"] for item in state.get("vocab", [])]
+    if terms:
+        mem.record_terms(student_id, terms)
+    return {}
 
 
 def enrich_definitions(state: AgentState, lookup: DictionaryLookup = lookup_word) -> dict:
@@ -166,7 +210,7 @@ def generate_vocabulary(state: AgentState, model: BaseChatModel) -> dict:
     theme = state.get("theme") or state["message"]
     messages = [
         SystemMessage(content=prompts.VOCAB_SYSTEM),
-        HumanMessage(content=prompts.vocab_user(theme, _level(state))),
+        HumanMessage(content=prompts.vocab_user(theme, _level(state), state.get("known_terms"))),
     ]
     try:
         data = parse_json_block(model.invoke(messages).content)
