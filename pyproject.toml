@@ -51,3 +51,7 @@ select = ["E", "F", "I", "UP", "B", "W"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-ra -q"
+markers = [
+    "acceptance: teste de aceitacao (criterios de negocio ponta a ponta)",
+    "e2e: teste end-to-end pela fronteira publica da aplicacao",
+]

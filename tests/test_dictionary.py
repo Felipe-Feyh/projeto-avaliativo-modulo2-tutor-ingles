@@ -74,6 +74,20 @@ def test_retry_em_erro_5xx_e_sucesso():
     assert calls["n"] == 3
 
 
+def test_retry_em_429_rate_limit():
+    calls = {"n": 0}
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] < 2:
+            return httpx.Response(429)
+        return httpx.Response(200, json=PAYLOAD)
+
+    result = _client(handler, max_retries=2).lookup("luggage")
+    assert result is not None
+    assert calls["n"] == 2
+
+
 def test_esgota_retries_retorna_none():
     calls = {"n": 0}
 

@@ -120,7 +120,8 @@ class DictionaryClient:
 
             if response.status_code == 404:
                 return None  # palavra nao encontrada -> fallback silencioso
-            if response.status_code >= 500:
+            # 429 (rate limit) e 5xx sao transitorios -> retry com backoff.
+            if response.status_code == 429 or response.status_code >= 500:
                 if attempt < self._max_retries:
                     self._sleep(self._backoff * (2**attempt))
                     continue
