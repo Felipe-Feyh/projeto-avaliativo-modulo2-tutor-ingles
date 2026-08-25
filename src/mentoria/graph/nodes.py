@@ -9,6 +9,7 @@ da aplicacao (requisito 4.2).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -17,11 +18,14 @@ from mentoria import prompts
 from mentoria.graph.state import AgentState
 from mentoria.llm import parse_json_block
 from mentoria.schemas import ComprehensionQuestion, Flashcard, MentorReport, RequestType
+from mentoria.tools.dictionary import DictionaryResult, lookup_word
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
 
 MAX_MESSAGE_LEN = 5000
+
+DictionaryLookup = Callable[[str], "DictionaryResult | None"]
 
 
 def _level(state: AgentState) -> str:
@@ -46,16 +50,34 @@ def validate_input(state: AgentState) -> dict:
     return {"blocked": False}
 
 
-def enrich_definitions(state: AgentState) -> dict:
+def enrich_definitions(state: AgentState, lookup: DictionaryLookup = lookup_word) -> dict:
     """Node paralelo B: enriquece termos com fonetica/classe gramatical.
 
-    Placeholder deterministico ate a integracao com a Free Dictionary API
-    (feature/tool-integracao). Escreve em `definitions`, chave distinta do
-    node paralelo A, evitando conflito de escrita.
+    Usa a Free Dictionary API (tool). Cada termo e resolvido de forma
+    resiliente: falha ou palavra nao encontrada resulta em campos nulos,
+    sem derrubar o fluxo. Escreve em `definitions`, chave distinta do node
+    paralelo A, evitando conflito de escrita.
     """
     terms = [v["term"] for v in state.get("vocab", [])]
-    definitions = {term: {"phonetics": None, "part_of_speech": None} for term in terms}
-    return {"definitions": definitions}
+    definitions: dict[str, dict] = {}
+    errors: list[str] = []
+    for term in terms:
+        try:
+            result = lookup(term)
+        except Exception as exc:  # noqa: BLE001 - resiliencia: nunca derruba o fluxo
+            result = None
+            errors.append(f"dictionary:{term}:{type(exc).__name__}")
+        if result is not None:
+            definitions[term] = {
+                "phonetics": result.phonetic,
+                "part_of_speech": result.part_of_speech,
+            }
+        else:
+            definitions[term] = {"phonetics": None, "part_of_speech": None}
+    updates: dict = {"definitions": definitions}
+    if errors:
+        updates["errors"] = errors
+    return updates
 
 
 def assemble_flashcards(state: AgentState) -> dict:

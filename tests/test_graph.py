@@ -12,10 +12,22 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
 from mentoria.agent import run_agent
 from mentoria.schemas import AgentRequest, CEFRLevel, RequestType
+from mentoria.tools.dictionary import DictionaryResult
 
 
 def _fake(responses: list[dict]) -> FakeListChatModel:
     return FakeListChatModel(responses=[json.dumps(r) for r in responses])
+
+
+def _fake_lookup(word: str) -> DictionaryResult | None:
+    """Lookup offline deterministico para os testes do grafo."""
+    table = {
+        "boarding pass": DictionaryResult(
+            word="boarding pass", phonetic=None, part_of_speech="noun"
+        ),
+        "luggage": DictionaryResult(word="luggage", phonetic="/ˈlʌɡɪdʒ/", part_of_speech="noun"),
+    }
+    return table.get(word)
 
 
 def test_fluxo_flashcards():
@@ -37,7 +49,9 @@ def test_fluxo_flashcards():
         ]
     )
     report = run_agent(
-        AgentRequest(message="quero aprender sobre viagens", level=CEFRLevel.B1), model=model
+        AgentRequest(message="quero aprender sobre viagens", level=CEFRLevel.B1),
+        model=model,
+        dictionary_lookup=_fake_lookup,
     )
 
     assert report.request_type == RequestType.FLASHCARDS
@@ -48,6 +62,9 @@ def test_fluxo_flashcards():
     card = next(c for c in report.flashcards if c.term == "luggage")
     assert card.translation == "bagagem"
     assert "luggage" in card.example
+    # enriquecido pela tool (lookup injetado)
+    assert card.phonetics == "/ˈlʌɡɪdʒ/"
+    assert card.part_of_speech == "noun"
 
 
 def test_fluxo_leitura():

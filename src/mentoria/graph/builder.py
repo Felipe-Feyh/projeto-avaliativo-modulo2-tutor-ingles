@@ -45,8 +45,9 @@ def _route_by_intent(state: AgentState) -> str:
     return "unknown"
 
 
-def build_graph(model: BaseChatModel | None = None, checkpointer=None):
-    """Monta e compila o grafo. `model` pode ser injetado (testes)."""
+def build_graph(model: BaseChatModel | None = None, dictionary_lookup=None, checkpointer=None):
+    """Monta e compila o grafo. `model` e `dictionary_lookup` podem ser
+    injetados (testes/offline)."""
     if model is None:
         model = get_chat_model()
 
@@ -54,7 +55,12 @@ def build_graph(model: BaseChatModel | None = None, checkpointer=None):
 
     # Nodes deterministicos
     graph.add_node("validate_input", nodes.validate_input)
-    graph.add_node("enrich_definitions", nodes.enrich_definitions)
+    if dictionary_lookup is not None:
+        graph.add_node(
+            "enrich_definitions", partial(nodes.enrich_definitions, lookup=dictionary_lookup)
+        )
+    else:
+        graph.add_node("enrich_definitions", nodes.enrich_definitions)
     graph.add_node("assemble_flashcards", nodes.assemble_flashcards)
     graph.add_node("build_report", nodes.build_report)
 

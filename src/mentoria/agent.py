@@ -12,13 +12,19 @@ if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
 
 
-def run_agent(request: AgentRequest, *, model: BaseChatModel | None = None) -> MentorReport:
+def run_agent(
+    request: AgentRequest,
+    *,
+    model: BaseChatModel | None = None,
+    dictionary_lookup=None,
+) -> MentorReport:
     """Executa o fluxo do agente e retorna o relatorio estruturado.
 
-    `model` pode ser injetado (testes/offline); quando None, o cliente real
-    (Groq/Gemini) e construido a partir das variaveis de ambiente.
+    `model` e `dictionary_lookup` podem ser injetados (testes/offline);
+    quando None, o cliente real (Groq/Gemini) e a Free Dictionary API sao
+    usados a partir das variaveis de ambiente.
     """
-    graph = build_graph(model=model)
+    graph = build_graph(model=model, dictionary_lookup=dictionary_lookup)
     initial: dict = {
         "message": request.message,
         "level": request.level,
