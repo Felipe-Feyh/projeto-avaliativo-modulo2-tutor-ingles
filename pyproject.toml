@@ -15,6 +15,10 @@ dependencies = [
     "pydantic-settings>=2.3",
     "python-dotenv>=1.0",
     "structlog>=24.1",
+    "langgraph>=1.0",
+    "langchain-core>=1.0",
+    "langchain-groq>=1.0",
+    "langchain-google-genai>=4.0",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +38,12 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Prompts contem strings longas (schemas JSON) que nao devem ser quebradas.
+"src/mentoria/prompts.py" = ["E501"]
+# Testes contem payloads JSON de exemplo em linha unica.
+"tests/test_graph.py" = ["E501"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
