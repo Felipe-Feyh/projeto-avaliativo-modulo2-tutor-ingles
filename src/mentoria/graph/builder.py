@@ -27,6 +27,7 @@ from langgraph.graph import END, START, StateGraph
 from mentoria.graph import nodes
 from mentoria.graph.state import AgentState
 from mentoria.llm import get_chat_model
+from mentoria.observability import instrument
 from mentoria.schemas import RequestType
 
 if TYPE_CHECKING:
@@ -51,37 +52,40 @@ def build_graph(
     dictionary_lookup=None,
     memory=None,
     checkpointer=None,
+    audit=None,
 ):
-    """Monta e compila o grafo. `model`, `dictionary_lookup` e `memory`
-    podem ser injetados (testes/offline)."""
+    """Monta e compila o grafo. `model`, `dictionary_lookup`, `memory` e
+    `audit` podem ser injetados (testes/offline). Quando `audit` e fornecido,
+    cada node e instrumentado (logs estruturados + trilha de auditoria)."""
     if model is None:
         model = get_chat_model()
 
     graph = StateGraph(AgentState)
 
+    def _add(name: str, fn) -> None:
+        graph.add_node(name, instrument(name, fn, audit) if audit is not None else fn)
+
     # Nodes deterministicos
-    graph.add_node("validate_input", nodes.validate_input)
-    graph.add_node("screen_input", nodes.screen_input)
+    _add("validate_input", nodes.validate_input)
+    _add("screen_input", nodes.screen_input)
     if memory is not None:
-        graph.add_node("load_memory", partial(nodes.load_memory, memory=memory))
-        graph.add_node("persist_memory", partial(nodes.persist_memory, memory=memory))
+        _add("load_memory", partial(nodes.load_memory, memory=memory))
+        _add("persist_memory", partial(nodes.persist_memory, memory=memory))
     else:
-        graph.add_node("load_memory", nodes.load_memory)
-        graph.add_node("persist_memory", nodes.persist_memory)
+        _add("load_memory", nodes.load_memory)
+        _add("persist_memory", nodes.persist_memory)
     if dictionary_lookup is not None:
-        graph.add_node(
-            "enrich_definitions", partial(nodes.enrich_definitions, lookup=dictionary_lookup)
-        )
+        _add("enrich_definitions", partial(nodes.enrich_definitions, lookup=dictionary_lookup))
     else:
-        graph.add_node("enrich_definitions", nodes.enrich_definitions)
-    graph.add_node("assemble_flashcards", nodes.assemble_flashcards)
-    graph.add_node("build_report", nodes.build_report)
+        _add("enrich_definitions", nodes.enrich_definitions)
+    _add("assemble_flashcards", nodes.assemble_flashcards)
+    _add("build_report", nodes.build_report)
 
     # Nodes com LLM (modelo injetado via partial)
-    graph.add_node("classify_intent", partial(nodes.classify_intent, model=model))
-    graph.add_node("generate_vocabulary", partial(nodes.generate_vocabulary, model=model))
-    graph.add_node("generate_examples", partial(nodes.generate_examples, model=model))
-    graph.add_node("generate_questions", partial(nodes.generate_questions, model=model))
+    _add("classify_intent", partial(nodes.classify_intent, model=model))
+    _add("generate_vocabulary", partial(nodes.generate_vocabulary, model=model))
+    _add("generate_examples", partial(nodes.generate_examples, model=model))
+    _add("generate_questions", partial(nodes.generate_questions, model=model))
 
     # Fluxo
     graph.add_edge(START, "validate_input")
