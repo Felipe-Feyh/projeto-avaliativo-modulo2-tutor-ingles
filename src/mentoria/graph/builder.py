@@ -3,8 +3,8 @@
 Topologia (DAG, sem loops -> terminacao garantida):
 
     START -> validate_input
-      validate_input --(bloqueado?)--> build_report -> END
-      validate_input --(ok)--> classify_intent
+      validate_input --(bloqueado?)--> build_report
+      validate_input --(ok)--> load_memory -> classify_intent
         classify_intent --(flashcards)--> generate_vocabulary
         classify_intent --(reading)----> generate_questions
         classify_intent --(unknown)----> build_report
@@ -12,8 +12,9 @@ Topologia (DAG, sem loops -> terminacao garantida):
       # fan-out paralelo + join
       generate_vocabulary -> generate_examples  -> assemble_flashcards
       generate_vocabulary -> enrich_definitions -> assemble_flashcards
-      assemble_flashcards -> build_report -> END
-      generate_questions  -> build_report -> END
+      assemble_flashcards -> build_report
+      generate_questions  -> build_report
+      build_report -> persist_memory -> END
 """
 
 from __future__ import annotations
@@ -45,9 +46,14 @@ def _route_by_intent(state: AgentState) -> str:
     return "unknown"
 
 
-def build_graph(model: BaseChatModel | None = None, dictionary_lookup=None, checkpointer=None):
-    """Monta e compila o grafo. `model` e `dictionary_lookup` podem ser
-    injetados (testes/offline)."""
+def build_graph(
+    model: BaseChatModel | None = None,
+    dictionary_lookup=None,
+    memory=None,
+    checkpointer=None,
+):
+    """Monta e compila o grafo. `model`, `dictionary_lookup` e `memory`
+    podem ser injetados (testes/offline)."""
     if model is None:
         model = get_chat_model()
 
@@ -55,6 +61,12 @@ def build_graph(model: BaseChatModel | None = None, dictionary_lookup=None, chec
 
     # Nodes deterministicos
     graph.add_node("validate_input", nodes.validate_input)
+    if memory is not None:
+        graph.add_node("load_memory", partial(nodes.load_memory, memory=memory))
+        graph.add_node("persist_memory", partial(nodes.persist_memory, memory=memory))
+    else:
+        graph.add_node("load_memory", nodes.load_memory)
+        graph.add_node("persist_memory", nodes.persist_memory)
     if dictionary_lookup is not None:
         graph.add_node(
             "enrich_definitions", partial(nodes.enrich_definitions, lookup=dictionary_lookup)
@@ -75,8 +87,9 @@ def build_graph(model: BaseChatModel | None = None, dictionary_lookup=None, chec
     graph.add_conditional_edges(
         "validate_input",
         _route_after_validate,
-        {"blocked": "build_report", "ok": "classify_intent"},
+        {"blocked": "build_report", "ok": "load_memory"},
     )
+    graph.add_edge("load_memory", "classify_intent")
     graph.add_conditional_edges(
         "classify_intent",
         _route_by_intent,
@@ -96,6 +109,7 @@ def build_graph(model: BaseChatModel | None = None, dictionary_lookup=None, chec
 
     graph.add_edge("assemble_flashcards", "build_report")
     graph.add_edge("generate_questions", "build_report")
-    graph.add_edge("build_report", END)
+    graph.add_edge("build_report", "persist_memory")
+    graph.add_edge("persist_memory", END)
 
     return graph.compile(checkpointer=checkpointer)

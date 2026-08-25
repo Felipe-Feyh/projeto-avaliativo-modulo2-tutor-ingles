@@ -34,6 +34,10 @@ class AgentState(TypedDict, total=False):
     blocked: bool
     block_reason: str | None
 
+    # Memoria (recuperada do perfil do aluno)
+    known_terms: list[str]
+    recent_themes: list[str]
+
     # Ramo flashcards
     theme: str | None
     vocab: list[dict[str, str]]  # [{term, translation}]
