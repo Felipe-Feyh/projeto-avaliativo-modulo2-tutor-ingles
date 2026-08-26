@@ -1,0 +1,25 @@
+{"ts": "2026-08-24T18:00:01Z", "run_id": "r1", "node": "classify_intent", "status": "ok", "latency_ms": 420}
+{"ts": "2026-08-24T18:00:02Z", "run_id": "r1", "node": "generate_vocabulary", "status": "ok", "latency_ms": 610}
+{"ts": "2026-08-24T18:00:03Z", "run_id": "r1", "node": "enrich_definitions", "status": "ok", "latency_ms": 240}
+{"ts": "2026-08-24T18:00:04Z", "run_id": "r1", "node": "generate_examples", "status": "ok", "latency_ms": 380}
+{"ts": "2026-08-24T18:00:05Z", "run_id": "r1", "node": "build_report", "status": "ok", "latency_ms": 2}
+{"ts": "2026-08-24T18:05:01Z", "run_id": "r2", "node": "classify_intent", "status": "ok", "latency_ms": 450}
+{"ts": "2026-08-24T18:05:02Z", "run_id": "r2", "node": "generate_vocabulary", "status": "ok", "latency_ms": 580}
+{"ts": "2026-08-24T18:05:03Z", "run_id": "r2", "node": "enrich_definitions", "status": "ok", "latency_ms": 300}
+{"ts": "2026-08-24T18:05:04Z", "run_id": "r2", "node": "generate_examples", "status": "ok", "latency_ms": 400}
+{"ts": "2026-08-24T18:05:05Z", "run_id": "r2", "node": "build_report", "status": "ok", "latency_ms": 2}
+{"ts": "2026-08-24T18:10:01Z", "run_id": "r3", "node": "classify_intent", "status": "ok", "latency_ms": 470}
+{"ts": "2026-08-24T18:10:02Z", "run_id": "r3", "node": "generate_vocabulary", "status": "ok", "latency_ms": 600}
+{"ts": "2026-08-24T18:10:03Z", "run_id": "r3", "node": "enrich_definitions", "status": "error", "latency_ms": 5, "error": "RuntimeError"}
+{"ts": "2026-08-24T18:10:04Z", "run_id": "r3", "node": "generate_examples", "status": "ok", "latency_ms": 390}
+{"ts": "2026-08-24T18:10:05Z", "run_id": "r3", "node": "build_report", "status": "ok", "latency_ms": 2}
+{"ts": "2026-08-24T18:15:01Z", "run_id": "r4", "node": "classify_intent", "status": "ok", "latency_ms": 500}
+{"ts": "2026-08-24T18:15:02Z", "run_id": "r4", "node": "generate_vocabulary", "status": "ok", "latency_ms": 1500}
+{"ts": "2026-08-24T18:15:03Z", "run_id": "r4", "node": "enrich_definitions", "status": "error", "latency_ms": 8, "error": "RuntimeError"}
+{"ts": "2026-08-24T18:15:04Z", "run_id": "r4", "node": "generate_examples", "status": "ok", "latency_ms": 410}
+{"ts": "2026-08-24T18:15:05Z", "run_id": "r4", "node": "build_report", "status": "ok", "latency_ms": 3}
+{"ts": "2026-08-24T18:20:01Z", "run_id": "r5", "node": "classify_intent", "status": "ok", "latency_ms": 480}
+{"ts": "2026-08-24T18:20:02Z", "run_id": "r5", "node": "generate_vocabulary", "status": "ok", "latency_ms": 620}
+{"ts": "2026-08-24T18:20:03Z", "run_id": "r5", "node": "enrich_definitions", "status": "error", "latency_ms": 6, "error": "RuntimeError"}
+{"ts": "2026-08-24T18:20:04Z", "run_id": "r5", "node": "generate_examples", "status": "ok", "latency_ms": 400}
+{"ts": "2026-08-24T18:20:05Z", "run_id": "r5", "node": "build_report", "status": "ok", "latency_ms": 2}
