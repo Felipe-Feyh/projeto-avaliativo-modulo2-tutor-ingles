@@ -225,7 +225,10 @@ def classify_intent(state: AgentState, model: BaseChatModel) -> dict:
     if intent == RequestType.FLASHCARDS:
         updates["theme"] = (data.get("theme") or state["message"]).strip()
     elif intent == RequestType.READING:
-        updates["reading_text"] = (data.get("reading_text") or state["message"]).strip()
+        text = (data.get("reading_text") or "").strip()
+        theme = (data.get("theme") or "").strip()
+        # Se nao veio texto mas veio tema, usa a mensagem original como contexto
+        updates["reading_text"] = text if text else (theme or state["message"]).strip()
     return updates
 
 
