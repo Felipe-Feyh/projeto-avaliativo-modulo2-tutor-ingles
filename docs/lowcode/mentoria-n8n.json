@@ -1,0 +1,64 @@
+{
+  "name": "MentorIA - Flashcards para Discord",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mentoria-flashcards",
+        "responseMode": "onReceived"
+      },
+      "id": "b1a1e001-0001-4001-8001-000000000001",
+      "name": "Webhook (trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/ask",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-API-Key", "value": "={{ $env.MENTORIA_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"{{ $json.body.theme }}\",\n  \"level\": \"{{ $json.body.level || 'B1' }}\",\n  \"student_id\": \"{{ $json.body.student_id || null }}\"\n}",
+        "options": {}
+      },
+      "id": "b1a1e001-0001-4001-8001-000000000002",
+      "name": "MentorIA /ask",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"**MentorIA** ({{ $json.request_type }} / {{ $json.level }})\\n{{ $json.summary }}\"\n}",
+        "options": {}
+      },
+      "id": "b1a1e001-0001-4001-8001-000000000003",
+      "name": "Discord (saida observavel)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (trigger)": {
+      "main": [[{ "node": "MentorIA /ask", "type": "main", "index": 0 }]]
+    },
+    "MentorIA /ask": {
+      "main": [[{ "node": "Discord (saida observavel)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "active": false
+}
