@@ -26,7 +26,7 @@ from mentoria.schemas import AgentRequest, CEFRLevel
 AUDIT_PATH = "logs/audit.jsonl"
 
 
-def _run(message: str, level: str, student_id: str) -> str:
+def _run(message: str, level: str, student_id: str, notify_discord: bool = False) -> str:
     """Executa o agente e retorna o resultado formatado."""
     if not message.strip():
         return "Por favor, digite uma mensagem."
@@ -45,6 +45,17 @@ def _run(message: str, level: str, student_id: str) -> str:
     )
     audit = AuditLog(path=AUDIT_PATH)
     report = run_agent(request, audit=audit)
+
+    # Notifica Discord se solicitado
+    discord_status = ""
+    if notify_discord:
+        from mentoria.notify import format_report_summary, post_to_discord
+
+        if settings.discord_webhook_url:
+            sent = post_to_discord(settings.discord_webhook_url, format_report_summary(report))
+            discord_status = "✅ Enviado ao Discord!" if sent else "❌ Falha ao enviar ao Discord."
+        else:
+            discord_status = "⚠️ DISCORD_WEBHOOK_URL não configurado no .env"
 
     # Formata a saida para exibicao
     lines = [f"## {report.request_type.value.upper()} (nivel {report.level})\n"]
@@ -73,6 +84,9 @@ def _run(message: str, level: str, student_id: str) -> str:
         lines.append("### Notas\n")
         for note in report.notes:
             lines.append(f"- {note}")
+
+    if discord_status:
+        lines.append(f"\n---\n**Discord:** {discord_status}")
 
     return "\n".join(lines)
 
@@ -181,11 +195,17 @@ def build_ui() -> gr.Blocks:
                             label="Student ID (opcional)",
                             placeholder="ex: felipe",
                         )
+                        discord_check = gr.Checkbox(
+                            label="Notificar Discord",
+                            value=False,
+                        )
                 submit_btn = gr.Button("Enviar", variant="primary")
                 output = gr.Markdown(label="Resultado")
 
                 submit_btn.click(
-                    fn=_run, inputs=[msg_input, level_input, student_input], outputs=output
+                    fn=_run,
+                    inputs=[msg_input, level_input, student_input, discord_check],
+                    outputs=output,
                 )
 
                 gr.Markdown("---")
@@ -242,7 +262,9 @@ def build_ui() -> gr.Blocks:
                 sec_btn = gr.Button("Testar", variant="stop")
                 sec_output = gr.Markdown()
                 sec_btn.click(
-                    fn=lambda msg: _run(msg, "B1", ""), inputs=sec_input, outputs=sec_output
+                    fn=lambda msg: _run(msg, "B1", "", False),
+                    inputs=sec_input,
+                    outputs=sec_output,
                 )
 
             # === Aba Sobre ===
@@ -253,6 +275,7 @@ def build_ui() -> gr.Blocks:
 |---------|-----|
 | API (Swagger) | [http://localhost:8000/docs](http://localhost:8000/docs) |
 | Health Check | [http://localhost:8000/health](http://localhost:8000/health) |
+| n8n (local) | [http://localhost:5678](http://localhost:5678) |
 | Repositório GitHub | [github.com/Felipe-Feyh/projeto-avaliativo-modulo2-tutor-ingles](https://github.com/Felipe-Feyh/projeto-avaliativo-modulo2-tutor-ingles) |
 | Quadro Kanban | [GitHub Projects](https://github.com/users/Felipe-Feyh/projects/3) |
 
