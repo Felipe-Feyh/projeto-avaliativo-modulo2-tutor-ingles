@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
     mentoria_db_path: str = Field(default="data/mentoria.db")
 
+    # API / integracoes (opcionais)
+    mentoria_api_key: str = Field(default="", description="Se definido, exige header X-API-Key.")
+    discord_webhook_url: str = Field(default="", description="Webhook do Discord (ChatOps).")
+
     def has_groq(self) -> bool:
         return bool(self.groq_api_key)
 
